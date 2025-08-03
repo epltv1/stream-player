@@ -10,26 +10,19 @@
         #player, #embedPlayer { width: 100%; max-width: 800px; height: 400px; margin: 0 auto; }
         #embedPlayer { display: none; }
         .error { color: red; text-align: center; margin-top: 10px; }
-        #player:empty::before { content: none; } /* Remove JW Player loading message */
     </style>
 </head>
 <body>
-    <div id="player"></div> <!-- Empty div to avoid loading message -->
-    <iframe id="embedPlayer" src="about:blank" frameborder="0" allowfullscreen allow="autoplay; fullscreen" sandbox="allow-same-origin allow-scripts"></iframe>
+    <div id="player">Loading JW Player...</div>
+    <iframe id="embedPlayer" src="about:blank" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
     <div id="error" class="error"></div>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const streamId = urlParams.get('play') || '60';
+        const streamId = urlParams.get('play') || '60'; // Default to 60
         const proxyUrl = `/api/proxy?id=${streamId}`;
         const errorDiv = document.getElementById('error');
         const embedPlayer = document.getElementById('embedPlayer');
         const jwPlayerContainer = document.getElementById('player');
-
-        // Block popups by overriding window.open
-        window.open = function() {
-            console.log('Blocked popup attempt');
-            return null;
-        };
 
         fetch(proxyUrl)
             .then(response => {
@@ -37,7 +30,7 @@
                 return response.text();
             })
             .then(data => {
-                if (data.includes('#EXTM3U')) { // Check if M3U8 playlist
+                if (data.includes('#EXTM3U')) { // Check if response is an M3U8 playlist
                     embedPlayer.style.display = 'none';
                     jwPlayerContainer.style.display = 'block';
                     jwplayer('player').setup({
@@ -51,7 +44,7 @@
                     }).on('ready', () => {
                         errorDiv.textContent = '';
                     });
-                } else { // Use iframe for embed URL
+                } else { // Assume embed URL
                     jwPlayerContainer.style.display = 'none';
                     embedPlayer.style.display = 'block';
                     embedPlayer.src = `https://thedaddy.to/embed/stream-${streamId}.php`;
