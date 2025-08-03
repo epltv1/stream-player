@@ -7,29 +7,55 @@
     <script src="https://content.jwplatform.com/libraries/IDzF9Zmk.js"></script>
     <style>
         body { margin: 0; padding: 20px; background: #000; color: #fff; font-family: Arial, sans-serif; }
-        #player { width: 100%; max-width: 800px; margin: 0 auto; }
+        #player, #embedPlayer { width: 100%; max-width: 800px; height: 400px; margin: 0 auto; }
+        #embedPlayer { display: none; }
         .error { color: red; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="player">Loading the player...</div>
+    <div id="player">Loading JW Player...</div>
+    <iframe id="embedPlayer" src="about:blank" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
     <div id="error" class="error"></div>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const streamId = urlParams.get('play') || '369'; // Default to 369
-        const streamUrl = `/api/proxy?id=${streamId}`;
+        const streamId = urlParams.get('play') || '60'; // Default to 60
+        const proxyUrl = `/api/proxy?id=${streamId}`;
         const errorDiv = document.getElementById('error');
-        jwplayer('player').setup({
-            file: streamUrl,
-            width: '100%',
-            height: '400px',
-            autostart: false,
-            controls: true
-        }).on('error', (e) => {
-            errorDiv.textContent = 'Error loading stream: ' + (e.message || 'Unknown error');
-        }).on('ready', () => {
-            errorDiv.textContent = '';
-        });
+        const embedPlayer = document.getElementById('embedPlayer');
+        const jwPlayerContainer = document.getElementById('player');
+
+        fetch(proxyUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('Stream fetch failed');
+                return response.text();
+            })
+            .then(data => {
+                if (data.includes('#EXTM3U')) { // Check if response is an M3U8 playlist
+                    embedPlayer.style.display = 'none';
+                    jwPlayerContainer.style.display = 'block';
+                    jwplayer('player').setup({
+                        file: proxyUrl,
+                        width: '100%',
+                        height: '400px',
+                        autostart: false,
+                        controls: true
+                    }).on('error', (e) => {
+                        errorDiv.textContent = 'Error loading stream: ' + (e.message || 'Unknown error');
+                    }).on('ready', () => {
+                        errorDiv.textContent = '';
+                    });
+                } else { // Assume embed URL
+                    jwPlayerContainer.style.display = 'none';
+                    embedPlayer.style.display = 'block';
+                    embedPlayer.src = `https://thedaddy.to/embed/stream-${streamId}.php`;
+                }
+            })
+            .catch(error => {
+                errorDiv.textContent = 'Error fetching stream: ' + error.message;
+                jwPlayerContainer.style.display = 'none';
+                embedPlayer.style.display = 'block';
+                embedPlayer.src = `https://thedaddy.to/embed/stream-${streamId}.php`;
+            });
     </script>
 </body>
 </html>
